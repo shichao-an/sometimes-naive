@@ -1,14 +1,37 @@
 #!/usr/bin/env python
 from selenium import webdriver
 import itertools
+import sys
 import time
 
 
-DRIVER = webdriver.Firefox()
-DRIVER.implicitly_wait(2)
+DRIVER = None
 CISCO_ROUTER_URL = 'https://172.16.1.1/default.htm'
-DRIVER.get("https://172.16.1.1/default.htm")
 SWITCH_INTERVAL = 20
+
+
+def parse_args():
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        if arg.isdigit():
+            if arg in ['1', '2']:
+                return 'WAN' + arg
+            else:
+                raise Exception('invalid WAN number')
+        else:
+            if arg in ['WAN1', 'WAN2']:
+                return arg
+            else:
+                raise Exception('invalid WAN name')
+    else:
+        return False
+
+
+def load_driver():
+    global DRIVER
+    DRIVER = webdriver.Firefox()
+    DRIVER.get("https://172.16.1.1/default.htm")
+    DRIVER.implicitly_wait(2)
 
 
 def read_secret():
@@ -43,7 +66,22 @@ def save_lkw():
     save.click()
 
 
+def switch_wan(wan):
+    lkw = DRIVER.find_element_by_name('SmartLKW')
+    select_lkw(lkw, wan)
+    save_lkw()
+    print('Switched to %s' % wan)
+
+
+def alternate():
+    for text in itertools.cycle(['WAN1', 'WAN2']):
+        switch_wan(text)
+        time.sleep(SWITCH_INTERVAL)
+
+
 def main():
+    wan = parse_args()
+    load_driver()
     page_login()
     switch_to_frame('menuPage')
     menu = DRIVER.find_element_by_id('menuNode_4')
@@ -51,11 +89,12 @@ def main():
     mn = DRIVER.find_element_by_id('MNL41')
     mn.click()
     switch_to_frame('contentFrame')
-    for text in itertools.cycle(['WAN1', 'WAN2']):
-        print('Switching to %s...' % text)
-        lkw = DRIVER.find_element_by_name('SmartLKW')
-        select_lkw(lkw, text)
-        save_lkw()
-        time.sleep(SWITCH_INTERVAL)
+    if wan is False:
+        alternate()
+    else:
+        switch_wan(wan)
+    DRIVER.close()
 
-main()
+
+if __name__ == '__main__':
+    main()
