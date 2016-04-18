@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 from selenium import webdriver
 import itertools
+import os
 import sys
 import time
 
 
 DRIVER = None
 CISCO_ROUTER_URL = 'https://172.16.1.1/default.htm'
-SWITCH_INTERVAL = 20
+SWITCH_INTERVAL = int(os.environ.get('SWITCH_INTERVAL', 40))
 
 
 def parse_args():
